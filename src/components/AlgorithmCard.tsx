@@ -6,10 +6,9 @@ interface AlgorithmCardProps {
   algorithm: Algorithm;
 }
 
-const DEFAULT_IMAGE = '/default-algorithm.png';
+const DEFAULT_IMAGE = '/gzip_draft.png';
 
 export const AlgorithmCard: React.FC<AlgorithmCardProps> = ({ algorithm }) => {
-  // Хук useState: инициализация изображением из мока либо дефолтным
   const [imgSrc, setImgSrc] = useState<string>(algorithm.image_url || DEFAULT_IMAGE);
 
   return (
@@ -18,7 +17,11 @@ export const AlgorithmCard: React.FC<AlgorithmCardProps> = ({ algorithm }) => {
         <Card.Img
           variant="top"
           src={imgSrc}
-          onError={() => setImgSrc(DEFAULT_IMAGE)}
+          onError={() => {
+            if (imgSrc !== DEFAULT_IMAGE) {
+              setImgSrc(DEFAULT_IMAGE);
+            }
+          }}
           alt={algorithm.algorithm_name}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />

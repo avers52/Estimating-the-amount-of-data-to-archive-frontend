@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Container, Button, Badge } from 'react-bootstrap';
+import { Container, Modal, Button } from 'react-bootstrap';
 import { MOCK_ALGORITHMS } from '../mocks/algorithms.mock';
 
-const DEFAULT_VIDEO = '/default-algorithm.mp4';
+const DEFAULT_VIDEO = '/gzip_process.mp4';
 
 export const FeedPage: React.FC = () => {
-  // Хук useState: индекс текущей отображаемой карточки из мока
   const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [showDetails, setShowDetails] = useState<boolean>(false);
+
   const currentAlgo = MOCK_ALGORITHMS[currentIndex];
 
   const handleNext = () => {
@@ -14,11 +15,12 @@ export const FeedPage: React.FC = () => {
   };
 
   return (
-    <Container className="d-flex flex-column justify-content-center align-items-center py-3" style={{ minHeight: '85vh' }}>
+    <Container className="d-flex flex-column justify-content-center align-items-center py-2" style={{ minHeight: '88vh' }}>
       <div
-        className="position-relative bg-dark rounded-4 shadow-lg overflow-hidden"
-        style={{ width: '100%', maxWidth: '390px', height: '640px' }}
+        className="position-relative bg-black rounded-4 shadow-lg overflow-hidden"
+        style={{ width: '100%', maxWidth: '390px', height: '680px' }}
       >
+        {/* Видеоплеер */}
         <video
           key={currentAlgo.video_url || DEFAULT_VIDEO}
           src={currentAlgo.video_url || DEFAULT_VIDEO}
@@ -30,45 +32,176 @@ export const FeedPage: React.FC = () => {
           playsInline
         />
 
-        {/* Верхний плавающий заголовок */}
-        <div className="position-absolute top-0 start-0 p-3 w-100 d-flex justify-content-between align-items-center">
-          <Badge bg="dark" className="bg-opacity-75 px-3 py-2 rounded-pill fw-bold" style={{ fontSize: '13px' }}>
-            {currentAlgo.algorithm_name}
-          </Badge>
-          <Badge
-            className="px-3 py-2 rounded-pill text-white fw-bold"
-            style={{ backgroundColor: '#00b4d8', fontSize: '12px' }}
+        {/* 1. Верхний заголовок по центру */}
+        <div className="position-absolute top-0 start-0 w-100 pt-3 d-flex justify-content-center" style={{ zIndex: 5 }}>
+          <div
+            className="px-4 py-1 text-white fw-bold rounded-pill shadow-sm"
+            style={{
+              backgroundColor: 'rgba(0, 0, 0, 0.65)',
+              backdropFilter: 'blur(6px)',
+              fontSize: '13px',
+              letterSpacing: '0.2px',
+            }}
           >
-            {currentAlgo.compression_ratio}x
-          </Badge>
+            {currentAlgo.algorithm_name}
+          </div>
         </div>
 
-        {/* Нижний информационный оверлей */}
+        {/* 2. Правая вертикальная панель виджетов */}
         <div
-          className="position-absolute bottom-0 start-0 p-3 text-white w-100"
-          style={{ background: 'linear-gradient(transparent, rgba(15, 23, 42, 0.95))' }}
+          className="position-absolute d-flex flex-column align-items-center gap-3"
+          style={{ right: '14px', bottom: '28px', zIndex: 10 }}
         >
-          <p style={{ fontSize: '13px', lineHeight: 1.4, marginBottom: '12px' }}>
-            {currentAlgo.algorithm_description}
-          </p>
-          <div className="d-flex justify-content-between align-items-center">
-            <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-              Скорость: <b className="text-white">{currentAlgo.compression_speed_mbps} МБ/с</b>
-            </span>
-            <Button
-              className="text-white rounded-pill px-4 fw-bold"
+          {/* Коэффициент сжатия */}
+          <div className="d-flex flex-column align-items-center text-white">
+            <div
+              className="d-flex flex-column justify-content-center align-items-center rounded-circle shadow-sm"
               style={{
-                backgroundColor: '#00b4d8',
-                border: 'none',
-                boxShadow: '0 4px 12px rgba(0, 180, 216, 0.4)',
+                width: '46px',
+                height: '46px',
+                backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                backdropFilter: 'blur(6px)',
+                cursor: 'pointer',
               }}
-              onClick={handleNext}
             >
-              Следующий →
-            </Button>
+              <span style={{ fontSize: '13px' }}>⚡</span>
+              <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '-2px' }}>
+                x{currentAlgo.compression_ratio.toFixed(2)}
+              </span>
+            </div>
+          </div>
+
+          {/* Скорость обработки */}
+          <div className="d-flex flex-column align-items-center text-white">
+            <div
+              className="d-flex flex-column justify-content-center align-items-center rounded-circle shadow-sm"
+              style={{
+                width: '46px',
+                height: '46px',
+                backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                backdropFilter: 'blur(6px)',
+                cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: '13px' }}>🚀</span>
+              <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '-2px' }}>
+                {currentAlgo.compression_speed_mbps}M
+              </span>
+            </div>
+          </div>
+
+          {/* Лайки */}
+          <div className="d-flex flex-column align-items-center text-white">
+            <div
+              className="d-flex flex-column justify-content-center align-items-center rounded-circle shadow-sm"
+              style={{
+                width: '46px',
+                height: '46px',
+                backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                backdropFilter: 'blur(6px)',
+                cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: '14px', color: '#ff4d6d' }}>❤️</span>
+              <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '-2px' }}>
+                {currentAlgo.likes_count}
+              </span>
+            </div>
+          </div>
+
+          {/* Зеленая кнопка перехода к следующему алгоритму */}
+          <div
+            onClick={handleNext}
+            className="d-flex flex-column justify-content-center align-items-center rounded-circle shadow text-white"
+            style={{
+              width: '46px',
+              height: '46px',
+              backgroundColor: '#2ec4b6',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: '14px', fontWeight: 900 }}>➜</span>
+            <span style={{ fontSize: '9px', fontWeight: 700, marginTop: '-2px' }}>След.</span>
+          </div>
+        </div>
+
+        {/* 3. Сплошное затемнение на всю ширину карточки */}
+        <div
+          className="position-absolute start-0 bottom-0 w-100 p-3 text-white"
+          style={{
+            background: 'linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.7) 65%, transparent 100%)',
+            zIndex: 5,
+          }}
+        >
+          <div style={{ maxWidth: 'calc(100% - 65px)' }}>
+            <div
+              style={{
+                fontSize: '13px',
+                lineHeight: 1.35,
+                fontWeight: 500,
+                textShadow: '0 1px 3px rgba(0, 0, 0, 0.8)',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                marginBottom: '4px',
+              }}
+            >
+              <b>{currentAlgo.algorithm_name}</b> — {currentAlgo.algorithm_description}
+            </div>
+            <span
+              onClick={() => setShowDetails(true)}
+              style={{
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                color: '#ffffff',
+                textDecoration: 'underline',
+                opacity: 0.95,
+              }}
+            >
+              Еще
+            </span>
           </div>
         </div>
       </div>
+
+      {/* Модальное окно по клику на «Еще» */}
+      <Modal show={showDetails} onHide={() => setShowDetails(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title style={{ fontSize: '16px', fontWeight: 700 }}>
+            {currentAlgo.algorithm_name}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p style={{ fontSize: '13px', color: '#475569', marginBottom: '14px' }}>
+            {currentAlgo.algorithm_description}
+          </p>
+          <div className="bg-light p-3 rounded-3" style={{ fontSize: '13px' }}>
+            <div className="d-flex justify-content-between mb-2">
+              <span className="text-muted">Коэффициент сжатия:</span>
+              <b>x{currentAlgo.compression_ratio.toFixed(2)}</b>
+            </div>
+            <div className="d-flex justify-content-between mb-2">
+              <span className="text-muted">Скорость обработки:</span>
+              <b>{currentAlgo.compression_speed_mbps} МБ/с</b>
+            </div>
+            <div className="d-flex justify-content-between mb-2">
+              <span className="text-muted">Оценка пользователей:</span>
+              <b>❤️ {currentAlgo.likes_count}</b>
+            </div>
+            <div className="d-flex justify-content-between">
+              <span className="text-muted">Медиафайл:</span>
+              <b>{currentAlgo.video_url ? 'MinIO S3' : 'Fallback (gzip_process.mp4)'}</b>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" size="sm" onClick={() => setShowDetails(false)}>
+            Закрыть
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };
