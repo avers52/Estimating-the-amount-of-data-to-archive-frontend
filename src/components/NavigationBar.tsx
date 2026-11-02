@@ -1,62 +1,83 @@
 import React from 'react';
-import { Nav, Navbar, Container } from 'react-bootstrap';
+import { Navbar, Nav, Container, Button } from 'react-bootstrap';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { logout } from '../store/slices/authSlice';
+import { resetFilter } from '../store/slices/filterSlice';
+import { UsersService } from '../api/client';
 
-export type PageType = 'feed' | 'catalog';
+export type PageType = 'catalog' | 'feed' | 'add' | 'auth';
 
 interface NavigationBarProps {
   currentPage: PageType;
-  onPageSelect: (page: PageType) => void;
+  onPageChange: (page: PageType) => void;
 }
 
-export const NavigationBar: React.FC<NavigationBarProps> = ({ currentPage, onPageSelect }) => {
+export const NavigationBar: React.FC<NavigationBarProps> = ({ currentPage, onPageChange }) => {
+  const dispatch = useAppDispatch();
+  const { isAuthenticated, loginName } = useAppSelector((state) => state.auth);
+
+  const handleLogout = async () => {
+    try {
+      await (UsersService as any).usersControllerLogout();
+    } catch {
+      // Игнорируем сетевые сбои при логауте
+    }
+    dispatch(logout());
+    dispatch(resetFilter());
+    onPageChange('catalog');
+  };
+
   return (
-    <Navbar fixed="bottom" bg="white" className="border-top shadow-sm py-2">
-      <Container className="d-flex justify-content-around">
-        {/* Пункт 1: Активен */}
-        <Nav.Link
-          onClick={() => onPageSelect('feed')}
-          className={`text-center py-1 ${currentPage === 'feed' ? 'fw-bold' : 'text-secondary'}`}
-          style={{
-            fontSize: '12px',
-            cursor: 'pointer',
-            color: currentPage === 'feed' ? '#0096c7' : undefined,
-          }}
-        >
-          🎬<br />Лента
-        </Nav.Link>
+    <Navbar bg="dark" variant="dark" expand="lg" fixed="bottom" className="border-top border-secondary py-2" style={{ zIndex: 1040 }}>
+      <Container className="d-flex justify-content-between align-items-center" style={{ maxWidth: '1100px' }}>
+        <Nav className="flex-row gap-3">
+          <Nav.Link
+            active={currentPage === 'catalog'}
+            onClick={() => onPageChange('catalog')}
+            className="px-2"
+            style={{ fontSize: '14.5px', cursor: 'pointer', fontWeight: currentPage === 'catalog' ? 600 : 400 }}
+          >
+            Плитка (Каталог)
+          </Nav.Link>
+          <Nav.Link
+            active={currentPage === 'feed'}
+            onClick={() => onPageChange('feed')}
+            className="px-2"
+            style={{ fontSize: '14.5px', cursor: 'pointer', fontWeight: currentPage === 'feed' ? 600 : 400 }}
+          >
+            Лента
+          </Nav.Link>
+          <Nav.Link
+            active={currentPage === 'add'}
+            onClick={() => isAuthenticated && onPageChange('add')}
+            disabled={!isAuthenticated}
+            className="px-2"
+            style={{ fontSize: '14.5px', cursor: isAuthenticated ? 'pointer' : 'not-allowed', fontWeight: currentPage === 'add' ? 600 : 400 }}
+          >
+            Добавить
+          </Nav.Link>
+        </Nav>
 
-        {/* Пункт 2: Активен */}
-        <Nav.Link
-          onClick={() => onPageSelect('catalog')}
-          className={`text-center py-1 ${currentPage === 'catalog' ? 'fw-bold' : 'text-secondary'}`}
-          style={{
-            fontSize: '12px',
-            cursor: 'pointer',
-            color: currentPage === 'catalog' ? '#0096c7' : undefined,
-          }}
-        >
-          🗂️<br />Плитка
-        </Nav.Link>
-
-        {/* Пункт 3: Недоступен (Добавление) */}
-        <Nav.Link
-          disabled
-          className="text-center py-1 text-muted"
-          style={{ fontSize: '12px', cursor: 'not-allowed', opacity: 0.35 }}
-          title="Недоступно для роли Гость"
-        >
-          ➕<br />Добавление
-        </Nav.Link>
-
-        {/* Пункт 4: Недоступен (Войти - крайний справа) */}
-        <Nav.Link
-          disabled
-          className="text-center py-1 text-muted"
-          style={{ fontSize: '12px', cursor: 'not-allowed', opacity: 0.35 }}
-          title="Недоступно в ЛР5"
-        >
-          👤<br />Войти
-        </Nav.Link>
+        <div>
+          {isAuthenticated ? (
+            <div className="d-flex align-items-center gap-2">
+              <span className="text-light small fw-semibold">{loginName}</span>
+              <Button variant="outline-light" size="sm" onClick={handleLogout} style={{ fontSize: '13px' }}>
+                Выход
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="primary"
+              size="sm"
+              className="px-3 fw-semibold"
+              style={{ fontSize: '13px' }}
+              onClick={() => onPageChange('auth')}
+            >
+              Вход
+            </Button>
+          )}
+        </div>
       </Container>
     </Navbar>
   );

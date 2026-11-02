@@ -1,36 +1,57 @@
-import React, { useState, useMemo } from 'react';
-import { Container, Row, Col } from 'react-bootstrap';
-import { MOCK_ALGORITHMS } from '../mocks/algorithms.mock';
-import { FilterBar } from '../components/FilterBar';
+import React, { useEffect } from 'react';
+import { Container, Row, Col, Spinner } from 'react-bootstrap';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { fetchAlgorithmsThunk, deleteAlgorithmThunk } from '../store/slices/algoSlice';
+import { setMinRatio } from '../store/slices/filterSlice';
 import { AlgorithmCard } from '../components/AlgorithmCard';
+import { FilterBar } from '../components/FilterBar';
 
-export const CatalogPage: React.FC = () => {
-  const [appliedRatio, setAppliedRatio] = useState<number>(1.0);
+interface CatalogPageProps {
+  onSelectAlgorithm?: (id: number) => void;
+}
 
-  const filteredAlgorithms = useMemo(() => {
-    return MOCK_ALGORITHMS.filter((algo) => algo.compression_ratio >= appliedRatio);
-  }, [appliedRatio]);
+export const CatalogPage: React.FC<CatalogPageProps> = ({ onSelectAlgorithm }) => {
+  const dispatch = useAppDispatch();
+  const { items, loading } = useAppSelector((state) => state.algorithms);
+  const minRatio = useAppSelector((state) => state.filter.minRatio);
+
+  useEffect(() => {
+    dispatch(fetchAlgorithmsThunk(minRatio));
+  }, [dispatch, minRatio]);
+
+  const handleFilterChange = (ratio: number) => {
+    dispatch(setMinRatio(ratio));
+  };
+
+  const handleDelete = (id: number) => {
+    dispatch(deleteAlgorithmThunk(id));
+  };
 
   return (
-    <Container className="py-4" style={{ maxWidth: '800px' }}>
+    <Container className="py-3" style={{ maxWidth: '900px' }}>
+      {/* Заголовок */}
       <div className="mb-3">
-        <h4 style={{ fontWeight: 800, color: '#0f172a' }}>Каталог алгоритмов сжатия</h4>
-        <p className="text-muted" style={{ fontSize: '13px', margin: 0 }}>
-          Просмотр и фильтрация характеристик компрессии данных (Mock-режим)
-        </p>
+        <h4 className="fw-bolder mb-0 text-dark">Каталог алгоритмов</h4>
+        <div className="small text-secondary fw-semibold">Выбор алгоритма архивации</div>
       </div>
 
-      <FilterBar initialRatio={appliedRatio} onSearch={setAppliedRatio} />
+      {/* Фильтр */}
+      <FilterBar initialRatio={minRatio} onFilterChange={handleFilterChange} />
 
-      {filteredAlgorithms.length === 0 ? (
-        <div className="text-center py-5 text-muted">
-          Нет алгоритмов со степенью сжатия выше {appliedRatio}x
+      {/* Сетка строго в 2 столбца */}
+      {loading ? (
+        <div className="text-center py-5">
+          <Spinner animation="border" style={{ color: '#2D7A63' }} />
         </div>
       ) : (
-        <Row xs={1} sm={2} className="g-3">
-          {filteredAlgorithms.map((algo) => (
+        <Row xs={2} className="g-3 pb-5">
+          {items.map((algo) => (
             <Col key={algo.algorithm_id}>
-              <AlgorithmCard algorithm={algo} />
+              <AlgorithmCard
+                algorithm={algo}
+                onSelect={onSelectAlgorithm}
+                onDelete={handleDelete}
+              />
             </Col>
           ))}
         </Row>

@@ -1,47 +1,78 @@
 import React, { useState } from 'react';
-import { Form, Row, Col, Button } from 'react-bootstrap';
+import { Button } from 'react-bootstrap';
 
-interface FilterBarProps {
+export interface FilterBarProps {
   initialRatio: number;
-  onSearch: (value: number) => void;
+  onFilterChange: (ratio: number) => void;
 }
 
-export const FilterBar: React.FC<FilterBarProps> = ({ initialRatio, onSearch }) => {
-  const [tempRatio, setTempRatio] = useState<number>(initialRatio);
+export const FilterBar: React.FC<FilterBarProps> = ({ initialRatio, onFilterChange }) => {
+  const [ratio, setLocalRatio] = useState<number>(initialRatio);
 
-  const handleApply = () => {
-    onSearch(tempRatio);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onFilterChange(Number(ratio));
   };
 
   return (
-    <div className="bg-white p-3 rounded-4 shadow-sm mb-4 border border-light">
-      <Row className="align-items-center g-2">
-        <Col xs={12} sm={4}>
-          <span style={{ fontSize: '13px', fontWeight: 600 }}>
-            Мин. сжатие: <span style={{ color: '#0096c7' }}>{tempRatio.toFixed(1)}x</span>
-          </span>
-        </Col>
-        <Col xs={8} sm={5}>
-          <Form.Range
+    <form onSubmit={handleSubmit} className="mb-4">
+      {/* Стили для принудительной перекраски ползунка Bootstrap */}
+      <style>{`
+        .custom-range::-webkit-slider-thumb {
+          background-color: #2D7A63 !important;
+        }
+        .custom-range::-moz-range-thumb {
+          background-color: #2D7A63 !important;
+        }
+        .custom-range:focus::-webkit-slider-thumb {
+          box-shadow: 0 0 0 1px #fff, 0 0 0 0.25rem rgba(45, 122, 99, 0.25) !important;
+        }
+      `}</style>
+
+      <div
+        className="p-3 bg-white shadow-sm"
+        style={{
+          borderRadius: '16px',
+          border: '1px solid #ECEFF1',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+        }}
+      >
+        <div style={{ flex: 1 }}>
+          <div className="d-flex justify-content-between align-items-center mb-1">
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>
+              Сжатие от:
+            </span>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>
+              x{Number(ratio).toFixed(1)}
+            </span>
+          </div>
+          <input
+            type="range"
+            className="form-range custom-range"
             min={1.0}
-            max={5.0}
+            max={10.0}
             step={0.1}
-            value={tempRatio}
-            onChange={(e) => setTempRatio(parseFloat(e.target.value))}
-            style={{ accentColor: '#00b4d8' }}
+            value={ratio}
+            onChange={(e) => setLocalRatio(parseFloat(e.target.value))}
+            style={{ accentColor: '#2D7A63', height: '6px' }}
           />
-        </Col>
-        <Col xs={4} sm={3} className="text-end">
-          <Button
-            size="sm"
-            className="w-100 rounded-pill fw-bold text-white"
-            style={{ backgroundColor: '#00b4d8', border: 'none' }}
-            onClick={handleApply}
-          >
-            Найти
-          </Button>
-        </Col>
-      </Row>
-    </div>
+        </div>
+
+        <Button
+          type="submit"
+          className="fw-bold px-4 py-2 shadow-none border-0"
+          style={{
+            backgroundColor: '#2D7A63',
+            borderRadius: '10px',
+            fontSize: '13px',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Найти
+        </Button>
+      </div>
+    </form>
   );
 };
