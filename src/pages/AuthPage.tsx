@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
-import { UsersService } from '../api/client';
+import axios from 'axios';
 import { useAppDispatch } from '../store/hooks';
 import { setAuth } from '../store/slices/authSlice';
 
@@ -21,15 +21,33 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
     setError(null);
     setLoading(true);
 
+    const cleanLogin = login.trim();
+    const cleanPassword = password.trim();
+
+    // Передаем параметры под любые требования бэкенда (login, username, email)
+    const payload = {
+      login: cleanLogin,
+      username: cleanLogin,
+      email: cleanLogin,
+      password: cleanPassword,
+    };
+
     try {
       if (isRegister) {
-        await UsersService.usersControllerRegister({ login, password });
+        await axios.post('/api/register', payload, {
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
-      await UsersService.usersControllerLogin({ login, password });
-      dispatch(setAuth(login));
+
+      await axios.post('/api/login', payload, {
+        headers: { 'Content-Type': 'application/json' },
+        withCredentials: true,
+      });
+
+      dispatch(setAuth(cleanLogin));
       onSuccess();
     } catch (err: any) {
-      const msg = err?.body?.message || err?.message || 'Ошибка аутентификации';
+      const msg = err.response?.data?.message || err.message || 'Неверный логин или пароль';
       setError(Array.isArray(msg) ? msg.join(', ') : msg);
     } finally {
       setLoading(false);
@@ -44,7 +62,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
             {isRegister ? 'Регистрация' : 'Вход в систему'}
           </Card.Title>
 
-          {error && <Alert variant="danger" className="py-2" style={{ fontSize: '12px' }}>{error}</Alert>}
+          {error && (
+            <Alert variant="danger" className="py-2" style={{ fontSize: '12px' }}>
+              {error}
+            </Alert>
+          )}
 
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-2">

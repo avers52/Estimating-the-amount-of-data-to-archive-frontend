@@ -48,12 +48,19 @@ export const AlgorithmCard: React.FC<AlgorithmCardProps> = ({ algorithm, onDelet
           alt={algorithm.algorithm_name}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
-        <Badge
-          className="position-absolute top-0 end-0 m-1 text-white"
-          style={{ backgroundColor: '#2ec4b6', fontSize: '10px', padding: '3px 6px' }}
+        <div
+          className="position-absolute top-0 end-0 m-1 text-white fw-bold d-flex align-items-center justify-content-center"
+          style={{
+            backgroundColor: '#2ec4b6',
+            fontSize: '10px',
+            padding: '3px 6px',
+            borderRadius: '6px',
+            lineHeight: 1,
+            zIndex: 2,
+          }}
         >
           {Number(algorithm.compression_ratio).toFixed(1)}x
-        </Badge>
+        </div>
       </div>
 
       <Card.Body className="d-flex flex-column justify-content-between p-2">
