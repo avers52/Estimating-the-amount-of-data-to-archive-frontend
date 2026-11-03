@@ -15,10 +15,22 @@ export const FilterBar: React.FC<FilterBarProps> = ({ initialRatio, onSearch }) 
 
   return (
     <div className="bg-white p-3 rounded-4 shadow-sm mb-4 border border-light">
+      <style>{`
+        .custom-teal-range::-webkit-slider-thumb {
+          background-color: #2ec4b6 !important;
+        }
+        .custom-teal-range::-moz-range-thumb {
+          background-color: #2ec4b6 !important;
+        }
+        .custom-teal-range:focus::-webkit-slider-thumb {
+          box-shadow: 0 0 0 1px #fff, 0 0 0 0.25rem rgba(46, 196, 182, 0.25) !important;
+        }
+      `}</style>
+
       <Row className="align-items-center g-2">
         <Col xs={12} sm={4}>
           <span style={{ fontSize: '13px', fontWeight: 600 }}>
-            Мин. сжатие: <span style={{ color: '#0096c7' }}>{tempRatio.toFixed(1)}x</span>
+            Мин. сжатие: <span style={{ color: '#2ec4b6' }}>{tempRatio.toFixed(1)}x</span>
           </span>
         </Col>
         <Col xs={8} sm={5}>
@@ -28,14 +40,15 @@ export const FilterBar: React.FC<FilterBarProps> = ({ initialRatio, onSearch }) 
             step={0.1}
             value={tempRatio}
             onChange={(e) => setTempRatio(parseFloat(e.target.value))}
-            style={{ accentColor: '#00b4d8' }}
+            className="custom-teal-range"
+            style={{ accentColor: '#2ec4b6' }}
           />
         </Col>
         <Col xs={4} sm={3} className="text-end">
           <Button
             size="sm"
-            className="w-100 rounded-pill fw-bold text-white"
-            style={{ backgroundColor: '#00b4d8', border: 'none' }}
+            className="w-100 rounded-pill fw-bold text-white shadow-none"
+            style={{ backgroundColor: '#2ec4b6', border: 'none' }}
             onClick={handleApply}
           >
             Найти
