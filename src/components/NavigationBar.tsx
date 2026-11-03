@@ -1,26 +1,32 @@
 import React from 'react';
-import { Navbar, Nav, Container, Button } from 'react-bootstrap';
+import { Nav } from 'react-bootstrap';
+import axios from 'axios';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
 import { resetFilter } from '../store/slices/filterSlice';
-import { UsersService } from '../api/client';
 
-export type PageType = 'catalog' | 'feed' | 'add' | 'auth';
+export type PageType = 'feed' | 'catalog' | 'add' | 'auth';
 
 interface NavigationBarProps {
   currentPage: PageType;
   onPageChange: (page: PageType) => void;
+  darkTheme?: boolean;
 }
 
-export const NavigationBar: React.FC<NavigationBarProps> = ({ currentPage, onPageChange }) => {
+export const NavigationBar: React.FC<NavigationBarProps> = ({
+  currentPage,
+  onPageChange,
+  darkTheme = false,
+}) => {
   const dispatch = useAppDispatch();
   const { isAuthenticated, loginName } = useAppSelector((state) => state.auth);
+  const loading = useAppSelector((state) => state.algorithms.loading);
 
   const handleLogout = async () => {
     try {
-      await (UsersService as any).usersControllerLogout();
+      await axios.post('/api/logout', {}, { withCredentials: true });
     } catch {
-      // Игнорируем сетевые сбои при логауте
+      // Игнорируем сетевые сбои при выходе
     }
     dispatch(logout());
     dispatch(resetFilter());
@@ -28,57 +34,93 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({ currentPage, onPag
   };
 
   return (
-    <Navbar bg="dark" variant="dark" expand="lg" fixed="bottom" className="border-top border-secondary py-2" style={{ zIndex: 1040 }}>
-      <Container className="d-flex justify-content-between align-items-center" style={{ maxWidth: '1100px' }}>
-        <Nav className="flex-row gap-3">
-          <Nav.Link
-            active={currentPage === 'catalog'}
-            onClick={() => onPageChange('catalog')}
-            className="px-2"
-            style={{ fontSize: '14.5px', cursor: 'pointer', fontWeight: currentPage === 'catalog' ? 600 : 400 }}
-          >
-            Плитка (Каталог)
-          </Nav.Link>
-          <Nav.Link
-            active={currentPage === 'feed'}
-            onClick={() => onPageChange('feed')}
-            className="px-2"
-            style={{ fontSize: '14.5px', cursor: 'pointer', fontWeight: currentPage === 'feed' ? 600 : 400 }}
-          >
-            Лента
-          </Nav.Link>
-          <Nav.Link
-            active={currentPage === 'add'}
-            onClick={() => isAuthenticated && onPageChange('add')}
-            disabled={!isAuthenticated}
-            className="px-2"
-            style={{ fontSize: '14.5px', cursor: isAuthenticated ? 'pointer' : 'not-allowed', fontWeight: currentPage === 'add' ? 600 : 400 }}
-          >
-            Добавить
-          </Nav.Link>
-        </Nav>
+    <div
+      className="d-flex justify-content-around align-items-center w-100 py-2"
+      style={{
+        backgroundColor: darkTheme ? 'rgba(15, 23, 42, 0.95)' : '#ffffff',
+        backdropFilter: 'blur(10px)',
+        borderTop: darkTheme ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
+        zIndex: 30,
+        pointerEvents: loading ? 'none' : 'auto',
+      }}
+    >
+      {/* 1. Лента */}
+      <Nav.Link
+        onClick={() => !loading && onPageChange('feed')}
+        className="text-center py-0 px-2"
+        style={{
+          fontSize: '11px',
+          cursor: loading ? 'wait' : 'pointer',
+          color: currentPage === 'feed' ? '#2ec4b6' : darkTheme ? '#94a3b8' : '#64748b',
+          fontWeight: currentPage === 'feed' ? 700 : 500,
+        }}
+      >
+        <div style={{ fontSize: '15px', lineHeight: 1, marginBottom: '2px' }}>🎬</div>
+        <span>Лента</span>
+      </Nav.Link>
 
-        <div>
-          {isAuthenticated ? (
-            <div className="d-flex align-items-center gap-2">
-              <span className="text-light small fw-semibold">{loginName}</span>
-              <Button variant="outline-light" size="sm" onClick={handleLogout} style={{ fontSize: '13px' }}>
-                Выход
-              </Button>
-            </div>
-          ) : (
-            <Button
-              variant="primary"
-              size="sm"
-              className="px-3 fw-semibold"
-              style={{ fontSize: '13px' }}
-              onClick={() => onPageChange('auth')}
-            >
-              Вход
-            </Button>
-          )}
-        </div>
-      </Container>
-    </Navbar>
+      {/* 2. Плитка */}
+      <Nav.Link
+        onClick={() => !loading && onPageChange('catalog')}
+        className="text-center py-0 px-2"
+        style={{
+          fontSize: '11px',
+          cursor: loading ? 'wait' : 'pointer',
+          color: currentPage === 'catalog' ? '#2ec4b6' : darkTheme ? '#94a3b8' : '#64748b',
+          fontWeight: currentPage === 'catalog' ? 700 : 500,
+        }}
+      >
+        <div style={{ fontSize: '15px', lineHeight: 1, marginBottom: '2px' }}>🗂️</div>
+        <span>Плитка</span>
+      </Nav.Link>
+
+      {/* 3. Добавление (доступно только авторизованным) */}
+      <Nav.Link
+        onClick={() => !loading && isAuthenticated && onPageChange('add')}
+        className="text-center py-0 px-2"
+        style={{
+          fontSize: '11px',
+          cursor: isAuthenticated && !loading ? 'pointer' : 'not-allowed',
+          opacity: isAuthenticated ? 1 : 0.35,
+          color: currentPage === 'add' ? '#2ec4b6' : darkTheme ? '#94a3b8' : '#64748b',
+          fontWeight: currentPage === 'add' ? 700 : 500,
+        }}
+      >
+        <div style={{ fontSize: '15px', lineHeight: 1, marginBottom: '2px' }}>➕</div>
+        <span>Добавление</span>
+      </Nav.Link>
+
+      {/* 4. Переключение Вход / Выход */}
+      {isAuthenticated ? (
+        <Nav.Link
+          onClick={() => !loading && handleLogout()}
+          className="text-center py-0 px-2"
+          title={`Вошли как: ${loginName}`}
+          style={{
+            fontSize: '11px',
+            cursor: loading ? 'wait' : 'pointer',
+            color: darkTheme ? '#ef4444' : '#dc2626',
+            fontWeight: 700,
+          }}
+        >
+          <div style={{ fontSize: '15px', lineHeight: 1, marginBottom: '2px' }}>🚪</div>
+          <span>Выход</span>
+        </Nav.Link>
+      ) : (
+        <Nav.Link
+          onClick={() => !loading && onPageChange('auth')}
+          className="text-center py-0 px-2"
+          style={{
+            fontSize: '11px',
+            cursor: loading ? 'wait' : 'pointer',
+            color: currentPage === 'auth' ? '#2ec4b6' : darkTheme ? '#94a3b8' : '#64748b',
+            fontWeight: currentPage === 'auth' ? 700 : 500,
+          }}
+        >
+          <div style={{ fontSize: '15px', lineHeight: 1, marginBottom: '2px' }}>👤</div>
+          <span>Войти</span>
+        </Nav.Link>
+      )}
+    </div>
   );
 };

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Button, Container } from 'react-bootstrap';
 import { NavigationBar, PageType } from './components/NavigationBar';
 import { CatalogPage } from './pages/CatalogPage';
 import { FeedPage } from './pages/FeedPage';
@@ -17,55 +16,55 @@ export function App() {
 
   const handlePageChange = (page: PageType) => {
     if (page === 'feed') {
-      // Если переходим по кнопке панели, сбрасываем точечный выбор
       setSelectedAlgoId(undefined);
     }
     setCurrentPage(page);
   };
 
   return (
-    <div className="min-vh-100 bg-light d-flex flex-column" style={{ paddingBottom: '76px' }}>
-      {/* Верхняя строка с кнопкой «Домой» справа */}
-      <header className="bg-white border-bottom shadow-sm py-2 px-3 sticky-top">
-        <Container className="d-flex justify-content-end align-items-center" style={{ maxWidth: '1100px' }}>
-          <Button
-            variant="outline-dark"
-            size="sm"
-            className="fw-bold d-flex align-items-center gap-1 shadow-none"
-            style={{ borderRadius: '8px', fontSize: '13px' }}
-            onClick={() => handlePageChange('catalog')}
-          >
-            <span>🏠</span>
-            <span>Домой</span>
-          </Button>
-        </Container>
-      </header>
-
-      {/* Контент */}
-      <main className="flex-grow-1">
+    <div
+      className="min-vh-100 d-flex flex-column align-items-center justify-content-center py-2"
+      style={{ backgroundColor: '#f1f5f9' }}
+    >
+      <main>
         {currentPage === 'catalog' && (
-          <CatalogPage onSelectAlgorithm={handleSelectAlgorithm} />
+          <CatalogPage
+            onSelectAlgorithm={handleSelectAlgorithm}
+            onPageChange={handlePageChange}
+          />
         )}
 
         {currentPage === 'feed' && (
-          <FeedPage targetAlgorithmId={selectedAlgoId} />
+          <FeedPage
+            targetAlgorithmId={selectedAlgoId}
+            onPageChange={handlePageChange}
+          />
         )}
 
         {currentPage === 'add' && (
-          <Container className="py-4" style={{ maxWidth: '780px' }}>
-            <AddAlgorithmPage onPublished={() => handlePageChange('catalog')} />
-          </Container>
+          <div
+            className="position-relative bg-white rounded-4 shadow-lg overflow-hidden d-flex flex-column justify-content-between"
+            style={{ width: '390px', height: '690px' }}
+          >
+            <div className="flex-grow-1 overflow-auto p-3" style={{ scrollbarWidth: 'none' }}>
+              <AddAlgorithmPage onPublished={() => handlePageChange('catalog')} />
+            </div>
+            <NavigationBar currentPage="add" onPageChange={handlePageChange} darkTheme={false} />
+          </div>
         )}
 
         {currentPage === 'auth' && (
-          <Container className="py-4" style={{ maxWidth: '420px' }}>
-            <AuthPage onSuccess={() => handlePageChange('catalog')} />
-          </Container>
+          <div
+            className="position-relative bg-white rounded-4 shadow-lg overflow-hidden d-flex flex-column justify-content-between"
+            style={{ width: '390px', height: '690px' }}
+          >
+            <div className="flex-grow-1 d-flex align-items-center justify-content-center">
+              <AuthPage onSuccess={() => handlePageChange('catalog')} />
+            </div>
+            <NavigationBar currentPage="auth" onPageChange={handlePageChange} darkTheme={false} />
+          </div>
         )}
       </main>
-
-      {/* Нижняя панель навигации */}
-      <NavigationBar currentPage={currentPage} onPageChange={handlePageChange} />
     </div>
   );
 }

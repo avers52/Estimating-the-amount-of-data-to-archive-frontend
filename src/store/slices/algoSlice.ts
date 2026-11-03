@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { CompressionAlgorithmsService } from '../../api/client';
 import { MOCK_ALGORITHMS } from '../../mocks/algorithms.mock';
 import { Algorithm } from '../../types/algorithm';
+import type { RootState } from '../index';
 
 interface AlgoState {
   items: Algorithm[];
@@ -18,14 +19,21 @@ const initialState: AlgoState = {
 };
 
 // Загрузка каталога с фильтрацией (GET /api/compression-algorithms)
+// Fallback на mock-объекты предусмотрен ТОЛЬКО для гостя
 export const fetchAlgorithmsThunk = createAsyncThunk(
   'algorithms/fetchAll',
-  async (minRatio: number) => {
+  async (minRatio: number, { getState, rejectWithValue }) => {
+    const state = getState() as RootState;
+    const isGuest = !state.auth.isAuthenticated;
+
     try {
       const data = await CompressionAlgorithmsService.compressionAlgorithmsControllerGetCatalog(minRatio);
       return (data as unknown as Algorithm[]) || [];
-    } catch {
-      return MOCK_ALGORITHMS.filter((a) => a.compression_ratio >= minRatio);
+    } catch (err: any) {
+      if (isGuest) {
+        return MOCK_ALGORITHMS.filter((a) => a.compression_ratio >= minRatio);
+      }
+      return rejectWithValue(err?.body?.message || err?.message || 'Ошибка загрузки каталога');
     }
   }
 );
@@ -33,42 +41,63 @@ export const fetchAlgorithmsThunk = createAsyncThunk(
 // Загрузка карточки ленты (GET /api/compression-algorithms/feed)
 export const fetchFeedThunk = createAsyncThunk(
   'algorithms/fetchFeed',
-  async ({ id, next }: { id?: number; next?: boolean }) => {
+  async (
+    { id, next }: { id?: number; next?: boolean },
+    { getState, rejectWithValue }
+  ) => {
+    const state = getState() as RootState;
+    const isGuest = !state.auth.isAuthenticated;
+
     try {
       const data = await CompressionAlgorithmsService.compressionAlgorithmsControllerGetFeed(id, next);
-      return data as unknown as Algorithm;
-    } catch {
-      return MOCK_ALGORITHMS[0];
+      if (data) return data as unknown as Algorithm;
+      throw new Error('Пустой ответ');
+    } catch (err: any) {
+      if (isGuest) {
+        if (!MOCK_ALGORITHMS.length) return null;
+        if (id !== undefined) {
+          const found = MOCK_ALGORITHMS.find((a) => a.algorithm_id === id);
+          if (found) {
+            if (next) {
+              const idx = MOCK_ALGORITHMS.indexOf(found);
+              const nextIdx = (idx + 1) % MOCK_ALGORITHMS.length;
+              return MOCK_ALGORITHMS[nextIdx];
+            }
+            return found;
+          }
+        }
+        return MOCK_ALGORITHMS[0];
+      }
+      return rejectWithValue(err?.body?.message || err?.message || 'Ошибка загрузки ленты');
     }
   }
 );
 
-// Переключение лайка (POST /api/compression-algorithms/:id/like)
+// Переключение лайка через кодогенерацию
 export const toggleLikeThunk = createAsyncThunk(
   'algorithms/toggleLike',
-  async ({ id, isLiked }: { id: number; isLiked: number }) => {
+  async ({ id, isLiked }: { id: number; isLiked: number }, { rejectWithValue }) => {
     try {
-      // Стандартный вызов сгенерированного метода
       await (CompressionAlgorithmsService as any).compressionAlgorithmsControllerSetLike(id, {
         is_liked: isLiked,
       });
+      return { id, isLiked };
     } catch (err: any) {
-      // Альтернативная сигнатура, если генератор обернул в requestBody
-      await (CompressionAlgorithmsService as any).compressionAlgorithmsControllerSetLike({
-        id,
-        requestBody: { is_liked: isLiked },
-      });
+      return rejectWithValue(err?.body?.message || err?.message || 'Ошибка переключения лайка');
     }
-    return { id, isLiked };
   }
 );
 
 // Удаление алгоритма (DELETE /api/compression-algorithms/:id)
 export const deleteAlgorithmThunk = createAsyncThunk(
   'algorithms/delete',
-  async (id: number) => {
-    await CompressionAlgorithmsService.compressionAlgorithmsControllerDeleteService(id);
-    return id;
+  async (id: number, { rejectWithValue }) => {
+    try {
+      await CompressionAlgorithmsService.compressionAlgorithmsControllerDeleteService(id);
+      return id;
+    } catch (err: any) {
+      return rejectWithValue(err?.body?.message || err?.message || 'Ошибка удаления');
+    }
   }
 );
 
@@ -81,26 +110,30 @@ export const algoSlice = createSlice({
       // Каталог
       .addCase(fetchAlgorithmsThunk.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(fetchAlgorithmsThunk.fulfilled, (state, action) => {
         state.loading = false;
         state.items = action.payload;
       })
-      .addCase(fetchAlgorithmsThunk.rejected, (state) => {
+      .addCase(fetchAlgorithmsThunk.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload as string;
       })
       // Лента
       .addCase(fetchFeedThunk.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(fetchFeedThunk.fulfilled, (state, action) => {
         state.loading = false;
         state.feedItem = action.payload;
       })
-      .addCase(fetchFeedThunk.rejected, (state) => {
+      .addCase(fetchFeedThunk.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload as string;
       })
-      // Лайк (мгновенно меняем состояние в хранилище)
+      // Лайк
       .addCase(toggleLikeThunk.fulfilled, (state, action) => {
         const { id, isLiked } = action.payload;
         if (state.feedItem && state.feedItem.algorithm_id === id) {
