@@ -4,8 +4,13 @@ interface FilterState {
   minRatio: number;
 }
 
+const getInitialRatio = (): number => {
+  const saved = sessionStorage.getItem('minRatio');
+  return saved ? parseFloat(saved) : 1.0;
+};
+
 const initialState: FilterState = {
-  minRatio: 1.0,
+  minRatio: getInitialRatio(),
 };
 
 export const filterSlice = createSlice({
@@ -14,9 +19,11 @@ export const filterSlice = createSlice({
   reducers: {
     setMinRatio: (state, action: PayloadAction<number>) => {
       state.minRatio = action.payload;
+      sessionStorage.setItem('minRatio', String(action.payload));
     },
     resetFilter: (state) => {
       state.minRatio = 1.0;
+      sessionStorage.removeItem('minRatio');
     },
   },
 });

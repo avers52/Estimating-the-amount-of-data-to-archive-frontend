@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Row, Col, Button, Spinner } from 'react-bootstrap';
 
 export interface FilterBarProps {
@@ -7,8 +7,17 @@ export interface FilterBarProps {
   loading?: boolean;
 }
 
-export const FilterBar: React.FC<FilterBarProps> = ({ initialRatio, onFilterChange, loading = false }) => {
+export const FilterBar: React.FC<FilterBarProps> = ({
+  initialRatio,
+  onFilterChange,
+  loading = false,
+}) => {
   const [ratio, setLocalRatio] = useState<number>(initialRatio);
+
+  // Синхронизируем локальный ползунок при изменении значения в Redux (например, при сбросе на логауте)
+  useEffect(() => {
+    setLocalRatio(initialRatio);
+  }, [initialRatio]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +44,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({ initialRatio, onFilterChan
         <Row className="align-items-center g-2">
           <Col xs={12} sm={4}>
             <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-              Мин. сжатие: <span style={{ color: '#2ec4b6', fontWeight: 700 }}>{Number(ratio).toFixed(1)}x</span>
+              Мин. сжатие:{' '}
+              <span style={{ color: '#2ec4b6', fontWeight: 700 }}>{Number(ratio).toFixed(1)}x</span>
             </span>
           </Col>
           <Col xs={8} sm={5}>

@@ -31,14 +31,14 @@ export const fetchAlgorithmsThunk = createAsyncThunk(
       return (data as unknown as Algorithm[]) || [];
     } catch (err: any) {
       if (isGuest) {
-        return MOCK_ALGORITHMS.filter((a) => a.compression_ratio >= minRatio);
+        return MOCK_ALGORITHMS.filter((a) => Number(a.compression_ratio) >= minRatio);
       }
       return rejectWithValue(err?.body?.message || err?.message || 'Ошибка загрузки каталога');
     }
   }
 );
 
-// Загрузка карточки ленты (GET /api/compression-algorithms/feed)
+// Загрузка карточки ленты с учётом активного фильтра minRatio из Redux
 export const fetchFeedThunk = createAsyncThunk(
   'algorithms/fetchFeed',
   async (
@@ -47,26 +47,62 @@ export const fetchFeedThunk = createAsyncThunk(
   ) => {
     const state = getState() as RootState;
     const isGuest = !state.auth.isAuthenticated;
+    const minRatio = state.filter.minRatio;
 
     try {
-      const data = await CompressionAlgorithmsService.compressionAlgorithmsControllerGetFeed(id, next);
-      if (data) return data as unknown as Algorithm;
-      throw new Error('Пустой ответ');
+      // Если открыли конкретную карточку по клику из плитки (next === false)
+      if (id !== undefined && next === false) {
+        const single = await CompressionAlgorithmsService.compressionAlgorithmsControllerGetFeed(id, false);
+        if (single) return single as unknown as Algorithm;
+      }
+
+      // Получаем список алгоритмов, проходящих текущий фильтр minRatio
+      const rawCatalog = await CompressionAlgorithmsService.compressionAlgorithmsControllerGetCatalog(minRatio);
+      const filteredList = ((rawCatalog as unknown as Algorithm[]) || []).filter(
+        (item) => Number(item.compression_ratio) >= minRatio
+      );
+
+      if (!filteredList.length) {
+        return null;
+      }
+
+      // Выбираем нужный элемент из отфильтрованного списка
+      let targetItem: Algorithm = filteredList[0];
+      if (id !== undefined) {
+        const currentIndex = filteredList.findIndex((item) => item.algorithm_id === id);
+        if (currentIndex !== -1) {
+          const nextIndex = next ? (currentIndex + 1) % filteredList.length : currentIndex;
+          targetItem = filteredList[nextIndex];
+        }
+      }
+
+      // Дозапрашиваем полные данные выбранного элемента через эндпоинт ленты (для актуальных is_liked и video_url)
+      try {
+        const fullFeedItem = await CompressionAlgorithmsService.compressionAlgorithmsControllerGetFeed(
+          targetItem.algorithm_id,
+          false
+        );
+        if (fullFeedItem) return fullFeedItem as unknown as Algorithm;
+      } catch {
+        // Если одиночный запрос не сработал, возвращаем объект из каталога
+      }
+
+      return targetItem;
     } catch (err: any) {
       if (isGuest) {
-        if (!MOCK_ALGORITHMS.length) return null;
+        const filteredMocks = MOCK_ALGORITHMS.filter(
+          (a) => Number(a.compression_ratio) >= minRatio
+        );
+        if (!filteredMocks.length) return null;
+
         if (id !== undefined) {
-          const found = MOCK_ALGORITHMS.find((a) => a.algorithm_id === id);
-          if (found) {
-            if (next) {
-              const idx = MOCK_ALGORITHMS.indexOf(found);
-              const nextIdx = (idx + 1) % MOCK_ALGORITHMS.length;
-              return MOCK_ALGORITHMS[nextIdx];
-            }
-            return found;
+          const idx = filteredMocks.findIndex((a) => a.algorithm_id === id);
+          if (idx !== -1) {
+            const nextIdx = next ? (idx + 1) % filteredMocks.length : idx;
+            return filteredMocks[nextIdx];
           }
         }
-        return MOCK_ALGORITHMS[0];
+        return filteredMocks[0];
       }
       return rejectWithValue(err?.body?.message || err?.message || 'Ошибка загрузки ленты');
     }
