@@ -1,12 +1,107 @@
-body {
+:root {
+  --primary-teal: #2ec4b6;
+  --bg-page: #f1f5f9;
+  --card-radius: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
   margin: 0;
   padding: 0;
-  background-color: #f8fafc;
+  min-height: 100dvh;
+  background-color: var(--bg-page);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   color: #0f172a;
 }
 
-/* Скрытие системного скроллбара при прокрутке */
+/* Адаптивный контейнер приложения:
+   - на мобильных (< 576px): 100% ширины и высоты экрана
+   - на планшетах и ПК (>= 576px): центрированный контейнер с отступами */
+.app-wrapper {
+  min-height: 100dvh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.app-shell {
+  width: 100%;
+  min-height: 100dvh;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Специальный контейнер для вертикальной видеоленты */
+.feed-shell {
+  width: 100%;
+  height: 100dvh;
+  background-color: #000000;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Планшеты и десктопы (>= 576px) */
+@media (min-width: 576px) {
+  .app-wrapper {
+    padding: 16px;
+  }
+
+  .app-shell {
+    max-width: 1080px;
+    min-height: 82vh;
+    max-height: 90vh;
+    border-radius: 24px;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.1);
+  }
+
+  .app-shell--narrow {
+    max-width: 480px;
+  }
+
+  .feed-shell {
+    max-width: 430px;
+    height: 84vh;
+    max-height: 780px;
+    border-radius: 24px;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.25);
+  }
+}
+
+/* Адаптивная высота обложки карточки */
+.algo-card-media {
+  height: 130px;
+  background-color: #e2e8f0;
+  position: relative;
+}
+
+@media (min-width: 576px) {
+  .algo-card-media {
+    height: 145px;
+  }
+}
+
+@media (min-width: 992px) {
+  .algo-card-media {
+    height: 160px;
+  }
+}
+
+/* Скрытие системного скроллбара */
 ::-webkit-scrollbar {
   width: 6px;
 }

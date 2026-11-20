@@ -4,6 +4,8 @@ import { MOCK_ALGORITHMS } from '../../mocks/algorithms.mock';
 import { Algorithm } from '../../types/algorithm';
 import type { RootState } from '../index';
 
+const IS_PAGES_MOCK = import.meta.env.VITE_FORCE_MOCK === 'true';
+
 interface AlgoState {
   items: Algorithm[];
   feedItem: Algorithm | null;
@@ -18,11 +20,13 @@ const initialState: AlgoState = {
   error: null,
 };
 
-// Загрузка каталога с фильтрацией (GET /api/compression-algorithms)
-// Fallback на mock-объекты предусмотрен ТОЛЬКО для гостя
 export const fetchAlgorithmsThunk = createAsyncThunk(
   'algorithms/fetchAll',
   async (minRatio: number, { getState, rejectWithValue }) => {
+    if (IS_PAGES_MOCK) {
+      return MOCK_ALGORITHMS.filter((a) => Number(a.compression_ratio) >= minRatio);
+    }
+
     const state = getState() as RootState;
     const isGuest = !state.auth.isAuthenticated;
 
@@ -38,7 +42,6 @@ export const fetchAlgorithmsThunk = createAsyncThunk(
   }
 );
 
-// Загрузка карточки ленты с учётом активного фильтра minRatio из Redux
 export const fetchFeedThunk = createAsyncThunk(
   'algorithms/fetchFeed',
   async (
@@ -49,14 +52,32 @@ export const fetchFeedThunk = createAsyncThunk(
     const isGuest = !state.auth.isAuthenticated;
     const minRatio = state.filter.minRatio;
 
+    const getMockFeedItem = () => {
+      const filteredMocks = MOCK_ALGORITHMS.filter(
+        (a) => Number(a.compression_ratio) >= minRatio
+      );
+      if (!filteredMocks.length) return null;
+
+      if (id !== undefined) {
+        const idx = filteredMocks.findIndex((a) => a.algorithm_id === id);
+        if (idx !== -1) {
+          const nextIdx = next ? (idx + 1) % filteredMocks.length : idx;
+          return filteredMocks[nextIdx];
+        }
+      }
+      return filteredMocks[0];
+    };
+
+    if (IS_PAGES_MOCK) {
+      return getMockFeedItem();
+    }
+
     try {
-      // Если открыли конкретную карточку по клику из плитки (next === false)
       if (id !== undefined && next === false) {
         const single = await CompressionAlgorithmsService.compressionAlgorithmsControllerGetFeed(id, false);
         if (single) return single as unknown as Algorithm;
       }
 
-      // Получаем список алгоритмов, проходящих текущий фильтр minRatio
       const rawCatalog = await CompressionAlgorithmsService.compressionAlgorithmsControllerGetCatalog(minRatio);
       const filteredList = ((rawCatalog as unknown as Algorithm[]) || []).filter(
         (item) => Number(item.compression_ratio) >= minRatio
@@ -66,7 +87,6 @@ export const fetchFeedThunk = createAsyncThunk(
         return null;
       }
 
-      // Выбираем нужный элемент из отфильтрованного списка
       let targetItem: Algorithm = filteredList[0];
       if (id !== undefined) {
         const currentIndex = filteredList.findIndex((item) => item.algorithm_id === id);
@@ -76,7 +96,6 @@ export const fetchFeedThunk = createAsyncThunk(
         }
       }
 
-      // Дозапрашиваем полные данные выбранного элемента через эндпоинт ленты (для актуальных is_liked и video_url)
       try {
         const fullFeedItem = await CompressionAlgorithmsService.compressionAlgorithmsControllerGetFeed(
           targetItem.algorithm_id,
@@ -84,32 +103,19 @@ export const fetchFeedThunk = createAsyncThunk(
         );
         if (fullFeedItem) return fullFeedItem as unknown as Algorithm;
       } catch {
-        // Если одиночный запрос не сработал, возвращаем объект из каталога
+        // Fallback на элемент из списка
       }
 
       return targetItem;
     } catch (err: any) {
       if (isGuest) {
-        const filteredMocks = MOCK_ALGORITHMS.filter(
-          (a) => Number(a.compression_ratio) >= minRatio
-        );
-        if (!filteredMocks.length) return null;
-
-        if (id !== undefined) {
-          const idx = filteredMocks.findIndex((a) => a.algorithm_id === id);
-          if (idx !== -1) {
-            const nextIdx = next ? (idx + 1) % filteredMocks.length : idx;
-            return filteredMocks[nextIdx];
-          }
-        }
-        return filteredMocks[0];
+        return getMockFeedItem();
       }
       return rejectWithValue(err?.body?.message || err?.message || 'Ошибка загрузки ленты');
     }
   }
 );
 
-// Переключение лайка через кодогенерацию
 export const toggleLikeThunk = createAsyncThunk(
   'algorithms/toggleLike',
   async ({ id, isLiked }: { id: number; isLiked: number }, { rejectWithValue }) => {
@@ -124,7 +130,6 @@ export const toggleLikeThunk = createAsyncThunk(
   }
 );
 
-// Удаление алгоритма (DELETE /api/compression-algorithms/:id)
 export const deleteAlgorithmThunk = createAsyncThunk(
   'algorithms/delete',
   async (id: number, { rejectWithValue }) => {
@@ -143,7 +148,6 @@ export const algoSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      // Каталог
       .addCase(fetchAlgorithmsThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -156,7 +160,6 @@ export const algoSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Лента
       .addCase(fetchFeedThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -169,7 +172,6 @@ export const algoSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Лайк
       .addCase(toggleLikeThunk.fulfilled, (state, action) => {
         const { id, isLiked } = action.payload;
         if (state.feedItem && state.feedItem.algorithm_id === id) {
@@ -178,7 +180,6 @@ export const algoSlice = createSlice({
           state.feedItem.likes_count = isLiked === 1 ? currentCount + 1 : Math.max(0, currentCount - 1);
         }
       })
-      // Удаление
       .addCase(deleteAlgorithmThunk.fulfilled, (state, action) => {
         state.items = state.items.filter((item) => item.algorithm_id !== action.payload);
       });

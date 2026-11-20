@@ -4,19 +4,23 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchFeedThunk, toggleLikeThunk } from '../store/slices/algoSlice';
 import { NavigationBar, PageType } from '../components/NavigationBar';
 
-const DEFAULT_VIDEO = '/gzip_process.mp4';
+const BASE_URL = import.meta.env.BASE_URL || '/';
+const DEFAULT_VIDEO = `${BASE_URL}gzip_process.mp4`;
 
 const resolvePublicUrl = (url: string | null | undefined, fallback: string): string => {
   if (!url) return fallback;
-  if (url.startsWith('/')) return url;
-  try {
-    const parsed = new URL(url);
-    const parts = parsed.pathname.split('/');
-    const filename = parts[parts.length - 1];
-    return filename ? `/${filename}` : fallback;
-  } catch {
-    return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    try {
+      const parsed = new URL(url);
+      const parts = parsed.pathname.split('/');
+      const filename = parts[parts.length - 1];
+      return filename ? `${BASE_URL}${filename}` : fallback;
+    } catch {
+      return url;
+    }
   }
+  const cleanPath = url.startsWith('/') ? url.slice(1) : url;
+  return `${BASE_URL}${cleanPath}`;
 };
 
 interface FeedPageProps {
@@ -69,7 +73,7 @@ export const FeedPage: React.FC<FeedPageProps> = ({ targetAlgorithmId, onPageCha
 
   if (loading && !feedItem) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ width: '390px', height: '690px' }}>
+      <div className="feed-shell justify-content-center align-items-center">
         <Spinner animation="border" style={{ color: '#2ec4b6' }} />
       </div>
     );
@@ -77,184 +81,178 @@ export const FeedPage: React.FC<FeedPageProps> = ({ targetAlgorithmId, onPageCha
 
   if (!feedItem) {
     return (
-      <div
-        className="text-center text-white p-4 d-flex flex-column justify-content-center align-items-center"
-        style={{ width: '390px', height: '690px', backgroundColor: '#000', borderRadius: '24px' }}
-      >
-        <h5>Алгоритмы не найдены</h5>
-        <button
-          className="btn btn-outline-light btn-sm mt-3"
-          onClick={() => dispatch(fetchFeedThunk({ next: true }))}
-        >
-          Обновить
-        </button>
+      <div className="feed-shell text-center text-white p-4 justify-content-between align-items-center">
+        <div className="my-auto">
+          <h5>Алгоритмы не найдены</h5>
+          <button
+            className="btn btn-outline-light btn-sm mt-3"
+            onClick={() => dispatch(fetchFeedThunk({ next: true }))}
+          >
+            Обновить
+          </button>
+        </div>
+        <NavigationBar currentPage="feed" onPageChange={onPageChange} darkTheme={true} />
       </div>
     );
   }
 
-  const imageSrc = resolvePublicUrl(feedItem.image_url, '/gzip_draft.png');
+  const imageSrc = resolvePublicUrl(feedItem.image_url, `${BASE_URL}gzip_draft.png`);
   const videoSrc = resolvePublicUrl(feedItem.video_url, DEFAULT_VIDEO);
 
   return (
-    <div className="d-flex justify-content-center align-items-center py-2" style={{ userSelect: 'none' }}>
-      <div
-        className="position-relative bg-black rounded-4 shadow-lg overflow-hidden d-flex flex-column justify-content-between"
-        style={{ width: '390px', height: '690px' }}
-      >
-        <video
-          key={videoSrc}
-          src={videoSrc}
-          className="position-absolute top-0 start-0 w-100 h-100"
-          style={{ objectFit: 'cover', zIndex: 1 }}
-          autoPlay
-          loop
-          muted
-          playsInline
-          poster={imageSrc}
-        />
+    <div className="feed-shell" style={{ userSelect: 'none' }}>
+      <video
+        key={videoSrc}
+        src={videoSrc}
+        className="position-absolute top-0 start-0 w-100 h-100"
+        style={{ objectFit: 'cover', zIndex: 1 }}
+        autoPlay
+        loop
+        muted
+        playsInline
+        poster={imageSrc}
+      />
 
-        {/* Верхний заголовок */}
-        <div className="w-100 pt-3 d-flex justify-content-center" style={{ zIndex: 10 }}>
-          <div
-            className="px-4 py-1 text-white fw-bold rounded-pill shadow-sm"
-            style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.65)',
-              backdropFilter: 'blur(6px)',
-              fontSize: '13px',
-            }}
-          >
-            {feedItem.algorithm_name}
-          </div>
-        </div>
-
-        {/* Правые виджеты */}
+      {/* Верхний заголовок */}
+      <div className="w-100 pt-3 d-flex justify-content-center" style={{ zIndex: 10 }}>
         <div
-          className="position-absolute d-flex flex-column align-items-center gap-3"
-          style={{ right: '14px', bottom: '70px', zIndex: 15 }}
-        >
-          {/* Молния */}
-          <div
-            className="d-flex flex-column justify-content-center align-items-center rounded-circle shadow-sm text-white"
-            style={{
-              width: '46px',
-              height: '46px',
-              backgroundColor: 'rgba(15, 23, 42, 0.65)',
-              backdropFilter: 'blur(6px)',
-            }}
-          >
-            <span style={{ fontSize: '13px' }}>⚡</span>
-            <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '-2px' }}>
-              x{Number(feedItem.compression_ratio).toFixed(2)}
-            </span>
-          </div>
-
-          {/* Ракета */}
-          <div
-            className="d-flex flex-column justify-content-center align-items-center rounded-circle shadow-sm text-white"
-            style={{
-              width: '46px',
-              height: '46px',
-              backgroundColor: 'rgba(15, 23, 42, 0.65)',
-              backdropFilter: 'blur(6px)',
-            }}
-          >
-            <span style={{ fontSize: '13px' }}>🚀</span>
-            <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '-2px' }}>
-              {feedItem.compression_speed_mbps}M
-            </span>
-          </div>
-
-          {/* Лайк (кликабелен строго для авторизованных) */}
-          <div
-            onClick={isAuthenticated && !loading ? handleLike : undefined}
-            role={isAuthenticated ? 'button' : undefined}
-            title={isAuthenticated ? 'Оценить алгоритм' : 'Оценивать алгоритмы могут только авторизованные пользователи'}
-            className="d-flex flex-column justify-content-center align-items-center rounded-circle shadow-sm text-white"
-            style={{
-              width: '46px',
-              height: '46px',
-              backgroundColor: isLiked === 1 ? 'rgba(239, 68, 68, 0.95)' : 'rgba(15, 23, 42, 0.65)',
-              backdropFilter: 'blur(6px)',
-              cursor: isAuthenticated && !loading ? 'pointer' : 'default',
-              transition: 'background-color 0.15s ease',
-            }}
-          >
-            <span style={{ fontSize: '14px' }}>❤️</span>
-            <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '-2px' }}>
-              {likesCount}
-            </span>
-          </div>
-
-          {/* Кнопка «Следующий» */}
-          <div
-            onClick={!loading ? handleNext : undefined}
-            role="button"
-            className="d-flex flex-column justify-content-center align-items-center rounded-circle shadow text-white"
-            style={{
-              width: '46px',
-              height: '46px',
-              backgroundColor: '#2ec4b6',
-              cursor: loading ? 'wait' : 'pointer',
-              opacity: loading ? 0.6 : 1,
-            }}
-          >
-            {loading ? (
-              <Spinner animation="border" size="sm" />
-            ) : (
-              <>
-                <span style={{ fontSize: '14px', fontWeight: 900 }}>➜</span>
-                <span style={{ fontSize: '9px', fontWeight: 700, marginTop: '-2px' }}>След.</span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Описание + навигация */}
-        <div
-          className="w-100"
+          className="px-4 py-1 text-white fw-bold rounded-pill shadow-sm"
           style={{
-            zIndex: 10,
-            background: 'linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.7) 70%, transparent 100%)',
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(6px)',
+            fontSize: '13px',
           }}
         >
-          <div className="px-3 pb-2 text-white" style={{ maxWidth: 'calc(100% - 65px)' }}>
-            <div
-              style={{
-                fontSize: '13px',
-                lineHeight: 1.35,
-                fontWeight: 500,
-                maxHeight: isExpanded ? '200px' : '36px',
-                overflow: 'hidden',
-                display: isExpanded ? 'block' : '-webkit-box',
-                WebkitLineClamp: isExpanded ? undefined : 2,
-                WebkitBoxOrient: 'vertical',
-                transition: 'max-height 0.25s ease',
-                marginBottom: '4px',
-              }}
-            >
-              <b>{feedItem.algorithm_name}</b> — {feedItem.algorithm_description || 'Описание отсутствует.'}
-            </div>
+          {feedItem.algorithm_name}
+        </div>
+      </div>
 
-            <button
-              type="button"
-              onClick={() => setIsExpanded(!isExpanded)}
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: 0,
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                color: '#60a5fa',
-                outline: 'none',
-              }}
-            >
-              {isExpanded ? 'Скрыть' : 'Еще'}
-            </button>
+      {/* Правые виджеты */}
+      <div
+        className="position-absolute d-flex flex-column align-items-center gap-3"
+        style={{ right: '14px', bottom: '75px', zIndex: 15 }}
+      >
+        <div
+          className="d-flex flex-column justify-content-center align-items-center rounded-circle shadow-sm text-white"
+          style={{
+            width: '48px',
+            height: '48px',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(6px)',
+          }}
+        >
+          <span style={{ fontSize: '14px' }}>⚡</span>
+          <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '-2px' }}>
+            x{Number(feedItem.compression_ratio).toFixed(2)}
+          </span>
+        </div>
+
+        <div
+          className="d-flex flex-column justify-content-center align-items-center rounded-circle shadow-sm text-white"
+          style={{
+            width: '48px',
+            height: '48px',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(6px)',
+          }}
+        >
+          <span style={{ fontSize: '14px' }}>🚀</span>
+          <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '-2px' }}>
+            {feedItem.compression_speed_mbps}M
+          </span>
+        </div>
+
+        <div
+          onClick={isAuthenticated && !loading ? handleLike : undefined}
+          role={isAuthenticated ? 'button' : undefined}
+          title={
+            isAuthenticated
+              ? 'Оценить алгоритм'
+              : 'Оценивать алгоритмы могут только авторизованные пользователи'
+          }
+          className="d-flex flex-column justify-content-center align-items-center rounded-circle shadow-sm text-white"
+          style={{
+            width: '48px',
+            height: '48px',
+            backgroundColor: isLiked === 1 ? 'rgba(239, 68, 68, 0.95)' : 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(6px)',
+            cursor: isAuthenticated && !loading ? 'pointer' : 'default',
+          }}
+        >
+          <span style={{ fontSize: '14px' }}>❤️</span>
+          <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '-2px' }}>
+            {likesCount}
+          </span>
+        </div>
+
+        <div
+          onClick={!loading ? handleNext : undefined}
+          role="button"
+          className="d-flex flex-column justify-content-center align-items-center rounded-circle shadow text-white"
+          style={{
+            width: '48px',
+            height: '48px',
+            backgroundColor: '#2ec4b6',
+            cursor: loading ? 'wait' : 'pointer',
+            opacity: loading ? 0.6 : 1,
+          }}
+        >
+          {loading ? (
+            <Spinner animation="border" size="sm" />
+          ) : (
+            <>
+              <span style={{ fontSize: '14px', fontWeight: 900 }}>➜</span>
+              <span style={{ fontSize: '9px', fontWeight: 700, marginTop: '-2px' }}>След.</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Описание + навигация */}
+      <div
+        className="w-100"
+        style={{
+          zIndex: 10,
+          background:
+            'linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.7) 70%, transparent 100%)',
+        }}
+      >
+        <div className="px-3 pb-2 text-white" style={{ maxWidth: 'calc(100% - 70px)' }}>
+          <div
+            style={{
+              fontSize: '13px',
+              lineHeight: 1.35,
+              fontWeight: 500,
+              maxHeight: isExpanded ? '200px' : '38px',
+              overflow: 'hidden',
+              display: isExpanded ? 'block' : '-webkit-box',
+              WebkitLineClamp: isExpanded ? undefined : 2,
+              WebkitBoxOrient: 'vertical',
+              marginBottom: '4px',
+            }}
+          >
+            <b>{feedItem.algorithm_name}</b> —{' '}
+            {feedItem.algorithm_description || 'Описание отсутствует.'}
           </div>
 
-          <NavigationBar currentPage="feed" onPageChange={onPageChange} darkTheme={true} />
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              color: '#60a5fa',
+            }}
+          >
+            {isExpanded ? 'Скрыть' : 'Еще'}
+          </button>
         </div>
+
+        <NavigationBar currentPage="feed" onPageChange={onPageChange} darkTheme={true} />
       </div>
     </div>
   );

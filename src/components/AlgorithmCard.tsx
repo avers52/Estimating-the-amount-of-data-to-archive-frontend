@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Badge, Button } from 'react-bootstrap';
+import { Card, Button } from 'react-bootstrap';
 import { Algorithm } from '../types/algorithm';
 
 interface AlgorithmCardProps {
@@ -8,20 +8,24 @@ interface AlgorithmCardProps {
   onSelect?: (id: number) => void;
 }
 
-const DEFAULT_IMAGE = '/gzip_draft.png';
+const BASE_URL = import.meta.env.BASE_URL || '/';
+const DEFAULT_IMAGE = `${BASE_URL}gzip_draft.png`;
 
-// Функция нормализации URL: если бэкенд отдает ссылку на MinIO, извлекаем имя файла из public
+// Нормализация URL с учётом базового пути GitHub Pages и MinIO
 const resolvePublicUrl = (url: string | null | undefined): string => {
   if (!url) return DEFAULT_IMAGE;
-  if (url.startsWith('/')) return url;
-  try {
-    const parsed = new URL(url);
-    const parts = parsed.pathname.split('/');
-    const filename = parts[parts.length - 1];
-    return filename ? `/${filename}` : DEFAULT_IMAGE;
-  } catch {
-    return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    try {
+      const parsed = new URL(url);
+      const parts = parsed.pathname.split('/');
+      const filename = parts[parts.length - 1];
+      return filename ? `${BASE_URL}${filename}` : DEFAULT_IMAGE;
+    } catch {
+      return url;
+    }
   }
+  const cleanPath = url.startsWith('/') ? url.slice(1) : url;
+  return `${BASE_URL}${cleanPath}`;
 };
 
 export const AlgorithmCard: React.FC<AlgorithmCardProps> = ({ algorithm, onDelete, onSelect }) => {
@@ -34,11 +38,11 @@ export const AlgorithmCard: React.FC<AlgorithmCardProps> = ({ algorithm, onDelet
         borderRadius: '16px',
         overflow: 'hidden',
         cursor: onSelect ? 'pointer' : 'default',
-        transition: 'transform 0.15s ease',
+        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
       }}
       onClick={() => onSelect && onSelect(algorithm.algorithm_id)}
     >
-      <div style={{ height: '95px', backgroundColor: '#e2e8f0', position: 'relative' }}>
+      <div className="algo-card-media">
         <Card.Img
           variant="top"
           src={imgSrc}
@@ -49,12 +53,12 @@ export const AlgorithmCard: React.FC<AlgorithmCardProps> = ({ algorithm, onDelet
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
         <div
-          className="position-absolute top-0 end-0 m-1 text-white fw-bold d-flex align-items-center justify-content-center"
+          className="position-absolute top-0 end-0 m-2 text-white fw-bold d-flex align-items-center justify-content-center"
           style={{
             backgroundColor: '#2ec4b6',
-            fontSize: '10px',
-            padding: '3px 6px',
-            borderRadius: '6px',
+            fontSize: '11px',
+            padding: '4px 8px',
+            borderRadius: '8px',
             lineHeight: 1,
             zIndex: 2,
           }}
@@ -63,11 +67,11 @@ export const AlgorithmCard: React.FC<AlgorithmCardProps> = ({ algorithm, onDelet
         </div>
       </div>
 
-      <Card.Body className="d-flex flex-column justify-content-between p-2">
+      <Card.Body className="d-flex flex-column justify-content-between p-3">
         <div>
           <Card.Title
             className="text-truncate mb-1"
-            style={{ fontSize: '12.5px', fontWeight: 700 }}
+            style={{ fontSize: '14px', fontWeight: 700 }}
             title={algorithm.algorithm_name}
           >
             {algorithm.algorithm_name}
@@ -75,13 +79,13 @@ export const AlgorithmCard: React.FC<AlgorithmCardProps> = ({ algorithm, onDelet
           <Card.Text
             className="text-muted"
             style={{
-              fontSize: '11px',
-              lineHeight: 1.3,
+              fontSize: '12px',
+              lineHeight: 1.35,
               display: '-webkit-box',
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
-              marginBottom: '6px',
+              marginBottom: '8px',
             }}
           >
             {algorithm.algorithm_description || 'Нет описания'}
@@ -89,9 +93,12 @@ export const AlgorithmCard: React.FC<AlgorithmCardProps> = ({ algorithm, onDelet
         </div>
 
         <div>
-          <div className="d-flex justify-content-between align-items-center pt-1 border-top" style={{ fontSize: '10.5px' }}>
+          <div
+            className="d-flex justify-content-between align-items-center pt-2 border-top"
+            style={{ fontSize: '11.5px' }}
+          >
             <span className="text-secondary fw-semibold">
-              ⚡ {algorithm.compression_speed_mbps}М
+              ⚡ {algorithm.compression_speed_mbps} МБ/с
             </span>
             <span style={{ color: '#2ec4b6', fontWeight: 700 }}>
               ❤️ {algorithm.likes_count ?? 0}
@@ -102,8 +109,8 @@ export const AlgorithmCard: React.FC<AlgorithmCardProps> = ({ algorithm, onDelet
             <Button
               variant="danger"
               size="sm"
-              className="w-100 fw-semibold mt-1 py-0 border-0"
-              style={{ fontSize: '10px', backgroundColor: '#ef4444', borderRadius: '6px' }}
+              className="w-100 fw-semibold mt-2 py-1 border-0"
+              style={{ fontSize: '11px', backgroundColor: '#ef4444', borderRadius: '8px' }}
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(algorithm.algorithm_id);

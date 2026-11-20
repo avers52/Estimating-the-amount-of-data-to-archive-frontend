@@ -22,49 +22,38 @@ export function App() {
   };
 
   return (
-    <div
-      className="min-vh-100 d-flex flex-column align-items-center justify-content-center py-2"
-      style={{ backgroundColor: '#f1f5f9' }}
-    >
-      <main>
-        {currentPage === 'catalog' && (
-          <CatalogPage
-            onSelectAlgorithm={handleSelectAlgorithm}
-            onPageChange={handlePageChange}
-          />
-        )}
+    <div className="app-wrapper">
+      {currentPage === 'catalog' && (
+        <CatalogPage
+          onSelectAlgorithm={handleSelectAlgorithm}
+          onPageChange={handlePageChange}
+        />
+      )}
 
-        {currentPage === 'feed' && (
-          <FeedPage
-            targetAlgorithmId={selectedAlgoId}
-            onPageChange={handlePageChange}
-          />
-        )}
+      {currentPage === 'feed' && (
+        <FeedPage
+          targetAlgorithmId={selectedAlgoId}
+          onPageChange={handlePageChange}
+        />
+      )}
 
-        {currentPage === 'add' && (
-          <div
-            className="position-relative bg-white rounded-4 shadow-lg overflow-hidden d-flex flex-column justify-content-between"
-            style={{ width: '390px', height: '690px' }}
-          >
-            <div className="flex-grow-1 overflow-auto p-3" style={{ scrollbarWidth: 'none' }}>
-              <AddAlgorithmPage onPublished={() => handlePageChange('catalog')} />
-            </div>
-            <NavigationBar currentPage="add" onPageChange={handlePageChange} darkTheme={false} />
+      {currentPage === 'add' && (
+        <div className="app-shell app-shell--narrow">
+          <div className="flex-grow-1 overflow-auto p-3 p-md-4">
+            <AddAlgorithmPage onPublished={() => handlePageChange('catalog')} />
           </div>
-        )}
+          <NavigationBar currentPage="add" onPageChange={handlePageChange} darkTheme={false} />
+        </div>
+      )}
 
-        {currentPage === 'auth' && (
-          <div
-            className="position-relative bg-white rounded-4 shadow-lg overflow-hidden d-flex flex-column justify-content-between"
-            style={{ width: '390px', height: '690px' }}
-          >
-            <div className="flex-grow-1 d-flex align-items-center justify-content-center">
-              <AuthPage onSuccess={() => handlePageChange('catalog')} />
-            </div>
-            <NavigationBar currentPage="auth" onPageChange={handlePageChange} darkTheme={false} />
+      {currentPage === 'auth' && (
+        <div className="app-shell app-shell--narrow">
+          <div className="flex-grow-1 d-flex align-items-center justify-content-center p-3">
+            <AuthPage onSuccess={() => handlePageChange('catalog')} />
           </div>
-        )}
-      </main>
+          <NavigationBar currentPage="auth" onPageChange={handlePageChange} darkTheme={false} />
+        </div>
+      )}
     </div>
   );
 }
