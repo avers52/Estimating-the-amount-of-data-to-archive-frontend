@@ -59,7 +59,7 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({ onSelectAlgorithm, onP
              sm=2 (>=576px) -> 2 колонки
              md=3 (>=768px) -> 3 колонки
              lg=4 (>=992px) -> 4 колонки */
-          <Row xs={1} sm={2} md={3} lg={4} className="g-3 pb-3">
+          <Row xs={2} md={3} lg={4} className="g-2 g-md-3 pb-3">
             {items.map((algo) => (
               <Col key={algo.algorithm_id}>
                 <AlgorithmCard
